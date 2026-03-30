@@ -11,6 +11,7 @@ export interface Registration {
   pkSpend:          string;   // spending PUBLIC key
   pkView:           string;   // viewing PUBLIC key
   schemeId:         string;   // "2" = classic, "4" = PQ
+  chainId:          number;   // chain this registration is on
   mlkemDecapsKey?:  string;   // hex-encoded, PQ only (2400 bytes = 4800 hex chars)
   registeredAt:     string;
   scannedUpToBlock: string | null;

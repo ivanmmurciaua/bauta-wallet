@@ -1,4 +1,4 @@
-import { mainnet, sepolia, arbitrumSepolia, base, baseSepolia } from "viem/chains";
+import { sepolia, arbitrum, polygon } from "viem/chains";
 import type { Chain } from "viem";
 
 // ── Supported chains ──────────────────────────────────────────────────────────
@@ -11,11 +11,9 @@ export interface ChainConfig {
 }
 
 export const SUPPORTED_CHAINS: ChainConfig[] = [
-  { chain: mainnet,         label: "Ethereum",        explorer: "https://etherscan.io",              testnet: false },
-  { chain: base,            label: "Base",             explorer: "https://basescan.org",              testnet: false },
-  { chain: sepolia,         label: "Sepolia",          explorer: "https://sepolia.etherscan.io",      testnet: true  },
-  { chain: arbitrumSepolia, label: "Arbitrum Sepolia", explorer: "https://sepolia.arbiscan.io",       testnet: true  },
-  { chain: baseSepolia,     label: "Base Sepolia",     explorer: "https://sepolia.basescan.org",      testnet: true  },
+  { chain: arbitrum, label: "Arbitrum", explorer: "https://arbiscan.io",          testnet: false },
+  { chain: polygon,  label: "Polygon",  explorer: "https://polygonscan.com",      testnet: false },
+  { chain: sepolia,  label: "Sepolia",  explorer: "https://sepolia.etherscan.io", testnet: true  },
 ];
 
 export const CHAIN_BY_ID: Record<number, ChainConfig> = Object.fromEntries(

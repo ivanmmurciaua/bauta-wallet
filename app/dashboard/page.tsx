@@ -293,6 +293,7 @@ export default function Dashboard() {
           stealthAddress: hit.stealthAddress,
           stealthPrivKey: hit.spendingKey,
           amount: hit.balance.toString(),
+          chainId: chainConfig.chain.id,
         }),
       });
       const data = await res.json();

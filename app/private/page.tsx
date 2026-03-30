@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatUnits, parseUnits } from "viem";
 import { WATCHER_URL } from "@/lib/constants";
+import { useChain } from "@/contexts/ChainContext";
 
 interface TokenBalance {
   token:     string;
@@ -17,6 +18,7 @@ type LoadStatus = "idle" | "loading" | "done" | "error";
 type TxStatus   = "idle" | "pending" | "done" | "error";
 
 export default function PrivateDashboard() {
+  const { chainConfig } = useChain();
   const [watcherReady, setWatcherReady]         = useState(false);
   const [broadcasterReady, setBroadcasterReady] = useState(false);
   const [railgunAddress, setRailgunAddress]     = useState<string | null>(null);
@@ -68,7 +70,7 @@ export default function PrivateDashboard() {
     setStatus("loading");
     setError(null);
     try {
-      const res = await fetch(`${WATCHER_URL}/balance`);
+      const res = await fetch(`${WATCHER_URL}/balance?chainId=${chainConfig.chain.id}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to fetch balances");
       setBalances(data.balances ?? []);
@@ -90,7 +92,7 @@ export default function PrivateDashboard() {
       const res = await fetch(`${WATCHER_URL}/unshield`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toAddress: unshieldTo, amount }),
+        body: JSON.stringify({ toAddress: unshieldTo, amount, chainId: chainConfig.chain.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Unshield failed");
@@ -115,7 +117,7 @@ export default function PrivateDashboard() {
       const res = await fetch(`${WATCHER_URL}/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toRailgunAddress: transferTo, tokenAddress: transferToken, amount }),
+        body: JSON.stringify({ toRailgunAddress: transferTo, tokenAddress: transferToken, amount, chainId: chainConfig.chain.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Transfer failed");

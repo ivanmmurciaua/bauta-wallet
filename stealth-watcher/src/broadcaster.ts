@@ -14,11 +14,10 @@ import {
   type RailgunERC20AmountRecipient,
   type TransactionGasDetails,
   EVMGasType,
-  getEVMGasTypeForTransaction,
   calculateGasPrice,
 } from "@railgun-community/shared-models";
 import { calculateBroadcasterFeeERC20Amount } from "@railgun-community/wallet";
-import { RAILGUN_NETWORK, PROVIDER } from "./config.js";
+import { NETWORKS, DEFAULT_CHAIN_ID } from "./config.js";
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -26,12 +25,14 @@ export let isBroadcasterReady = false;
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
-export async function initializeBroadcasters(): Promise<void> {
+export async function initializeBroadcasters(chainId: number = DEFAULT_CHAIN_ID): Promise<void> {
   const { WakuBroadcasterClient } = await import(
     "@railgun-community/waku-broadcaster-client-node"
   );
 
-  const chain = NETWORK_CONFIG[RAILGUN_NETWORK].chain;
+  const nc = NETWORKS[chainId];
+  if (!nc) throw new Error(`Unsupported chainId: ${chainId}`);
+  const chain = NETWORK_CONFIG[nc.railgunNetwork].chain;
 
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -65,12 +66,15 @@ export async function initializeBroadcasters(): Promise<void> {
 
 export async function findBroadcasterForToken(
   tokenAddress: string,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<SelectedBroadcaster> {
   const { WakuBroadcasterClient } = await import(
     "@railgun-community/waku-broadcaster-client-node"
   );
 
-  const chain = NETWORK_CONFIG[RAILGUN_NETWORK].chain;
+  const nc = NETWORKS[chainId];
+  if (!nc) throw new Error(`Unsupported chainId: ${chainId}`);
+  const chain = NETWORK_CONFIG[nc.railgunNetwork].chain;
   await WakuBroadcasterClient.findAllBroadcastersForChain(chain, false);
   const broadcaster = WakuBroadcasterClient.findBestBroadcaster(
     chain,
@@ -100,7 +104,11 @@ export async function buildBroadcasterGasConfig(
   broadcaster: SelectedBroadcaster,
   initialGasDetails: TransactionGasDetails,
   gasEstimate: bigint,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<BroadcasterGasConfig> {
+  const nc = NETWORKS[chainId];
+  if (!nc) throw new Error(`Unsupported chainId: ${chainId}`);
+
   const gasDetails: TransactionGasDetails = { ...initialGasDetails, gasEstimate };
 
   const feeTokenDetails: FeeTokenDetails = {
@@ -123,21 +131,16 @@ export async function buildBroadcasterGasConfig(
 
 /**
  * Initial gas details for the first estimation pass (gasEstimate = 0n placeholder).
+ * Broadcaster txs always use Type1 — the SDK enforces this regardless of network
+ * because overallBatchMinGasPrice is only supported by Type1 transactions.
  */
-export async function getInitialGasDetails(): Promise<TransactionGasDetails> {
-  const feeData = await PROVIDER.getFeeData();
-  const evmGasType = getEVMGasTypeForTransaction(RAILGUN_NETWORK, false);
+export async function getInitialGasDetails(chainId: number = DEFAULT_CHAIN_ID): Promise<TransactionGasDetails> {
+  const nc = NETWORKS[chainId];
+  if (!nc) throw new Error(`Unsupported chainId: ${chainId}`);
 
-  if (evmGasType === EVMGasType.Type2) {
-    return {
-      evmGasType,
-      gasEstimate: 0n,
-      maxFeePerGas: feeData.maxFeePerGas ?? 0n,
-      maxPriorityFeePerGas: feeData.maxPriorityFeePerGas ?? 0n,
-    };
-  }
+  const feeData = await nc.provider.getFeeData();
   return {
-    evmGasType: evmGasType as EVMGasType.Type1,
+    evmGasType: EVMGasType.Type1,
     gasEstimate: 0n,
     gasPrice: feeData.gasPrice ?? 0n,
   };
