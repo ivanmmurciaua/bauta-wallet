@@ -1,0 +1,25 @@
+services:
+  bauta:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_WATCHER_PORT: "8765"
+        NEXT_PUBLIC_FE_PORT: "8766"
+    environment:
+      FRONTEND_PORT: "8766"
+      WATCHER_PORT: "8765"
+      PORT: "8765"
+      FE_PORT: "8766"
+    ports:
+      - "8766:8766"
+      - "8765:8765"
+    volumes:
+      - ./stealth-watcher/vault.enc:/app/stealth-watcher/vault.enc:ro
+      - ./stealth-watcher/passphrase.txt:/app/stealth-watcher/passphrase.txt:ro
+      - watcher-db:/app/stealth-watcher/.railgun-db
+      - watcher-artifacts:/app/stealth-watcher/.railgun-artifacts
+    restart: unless-stopped
+
+volumes:
+  watcher-db:
+  watcher-artifacts:

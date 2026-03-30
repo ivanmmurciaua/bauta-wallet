@@ -1,0 +1,6 @@
+node_modules/
+vault.enc
+passphrase.txt
+.railgun-db/
+.railgun-artifacts/
+data/
