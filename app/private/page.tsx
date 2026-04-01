@@ -198,6 +198,9 @@ export default function PrivateDashboard() {
           Private dashboard
           <span className="cursor-blink" />
         </h1>
+        <p style={{ marginTop: 10, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, fontWeight: 300, background: "rgba(255,180,0,0.07)", border: "1px solid rgba(255,180,0,0.2)", borderRadius: 6, padding: "8px 12px" }}>
+          ⚠ RAILGUN can be flaky — if balances don&apos;t load or operations fail, just retry. It&apos;s not you.
+        </p>
         <p style={{ marginTop: 10, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7, fontWeight: 300 }}>
           Your RAILGUN shielded balance — private by default.
         </p>
