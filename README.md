@@ -89,7 +89,23 @@ ports:
 
 After changing ports, rebuild: `docker compose up --build`.
 
-## Contracts (Sepolia)
+## RPC configuration
+
+The frontend uses wagmi's default public RPCs out of the box, but these are rate-limited and unreliable for production use. Configure your wallet (MetaMask, etc.) with private RPC endpoints for best results.
+
+Recommended providers by use case:
+
+| Use case | Provider | Why |
+|---|---|---|
+| Sending transactions, gas estimation | [Alchemy](https://www.alchemy.com) | Low latency, reliable `eth_sendRawTransaction` |
+| Event scanning, `eth_getLogs` | [Infura](https://www.infura.io) | High log query limits, good archive support |
+| General / fallback | [Pocket Network](https://www.pokt.network) | Decentralized, no API key required |
+
+wagmi uses your wallet's configured RPC for gas estimation (`eth_estimateGas`). If that RPC is unresponsive, transactions will fail with `intrinsic gas too low` — this is almost always an RPC issue, not a code issue.
+
+For the stealth-watcher backend, set `RPC_URL` in your environment or `stealth-watcher/.env` (not committed).
+
+## Contracts (all chains — same address)
 
 | Contract | Address |
 |---|---|

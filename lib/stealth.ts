@@ -1,7 +1,7 @@
 import { keccak256, toHex, toBytes, concat, hexToBytes, getAddress } from "viem";
 
 export const SIGNING_MESSAGE =
-  "Sign this message to access your stealth account.\n\nOnly sign on a trusted app.\n\nNetwork: Sepolia Testnet (11155111)";
+  "Sign this message to access your stealth account.\n\nOnly sign on a trusted app.";
 
 // ── ABI ───────────────────────────────────────────────────────────────────────
 export { STEALTH_REGISTRY_ADDRESS } from "@/lib/constants";

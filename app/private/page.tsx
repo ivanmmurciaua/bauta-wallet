@@ -42,6 +42,17 @@ export default function PrivateDashboard() {
   const [transferTx, setTransferTx]       = useState<string | null>(null);
   const [transferErr, setTransferErr]     = useState<string | null>(null);
 
+  // Reset all state when chain changes
+  useEffect(() => {
+    setBalances([]);
+    setStatus("idle");
+    setError(null);
+    setUnshieldTo(""); setUnshieldAmt(""); setUnshieldToken("");
+    setUnshieldStatus("idle"); setUnshieldTx(null); setUnshieldErr(null);
+    setTransferTo(""); setTransferAmt(""); setTransferToken("");
+    setTransferStatus("idle"); setTransferTx(null); setTransferErr(null);
+  }, [chainConfig.chain.id]);
+
   useEffect(() => {
     fetch(`${WATCHER_URL}/ready`, { signal: AbortSignal.timeout(2000) })
       .then(r => r.json())

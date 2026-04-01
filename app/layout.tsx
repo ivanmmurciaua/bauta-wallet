@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Providers } from "@/components/Providers";
 import { PQToggle } from "@/components/PQToggle";
 import { WalletStatus } from "@/components/WalletStatus";
-// import { ChainSelector } from "@/components/ChainSelector";
+import { ChainSelector } from "@/components/ChainSelector";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -23,8 +23,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning>
         <Providers>
-          {/* <ChainSelector /> */}
           <WalletStatus />
+          <ChainSelector />
           <PQToggle />
           {children}
         </Providers>

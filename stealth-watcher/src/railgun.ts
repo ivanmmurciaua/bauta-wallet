@@ -245,7 +245,7 @@ export async function shieldETH(
   }
 
   // Shield txs use Type2 (EIP-1559) on all supported networks
-  const shieldGasDetails = {
+  const shieldGasDetails: import("@railgun-community/shared-models").TransactionGasDetailsType2 = {
     evmGasType: EVMGasType.Type2,
     gasEstimate,
     maxFeePerGas,

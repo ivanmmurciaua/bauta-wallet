@@ -75,7 +75,11 @@ export async function findBroadcasterForToken(
   const nc = NETWORKS[chainId];
   if (!nc) throw new Error(`Unsupported chainId: ${chainId}`);
   const chain = NETWORK_CONFIG[nc.railgunNetwork].chain;
+
+  // Switch Waku observers to the requested chain before searching
+  await WakuBroadcasterClient.setChain(chain);
   await WakuBroadcasterClient.findAllBroadcastersForChain(chain, false);
+
   const broadcaster = WakuBroadcasterClient.findBestBroadcaster(
     chain,
     tokenAddress,

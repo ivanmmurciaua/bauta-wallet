@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  createPublicClient,
-  http,
   isAddress,
   getAddress,
   parseEther,
@@ -16,6 +14,7 @@ import {
   useConnect,
   useSendTransaction,
   useWriteContract,
+  usePublicClient,
 } from "wagmi";
 import {
   generateStealthAddress,
@@ -57,6 +56,7 @@ export default function LookupPage() {
   const { writeContractAsync } = useWriteContract();
   const { pqEnabled } = usePQMode();
   const { chainConfig } = useChain();
+  const publicClient = usePublicClient({ chainId: chainConfig.chain.id });
 
   const schemeId = pqEnabled ? SCHEME_ID_PQ : SCHEME_ID_CLASSIC;
 
@@ -90,7 +90,7 @@ export default function LookupPage() {
     setResult(null);
     setSentTx(null);
     try {
-      const client = createPublicClient({ chain: chainConfig.chain, transport: http() });
+      const client = publicClient!;
       const raw = await client.readContract({
         address: STEALTH_REGISTRY_ADDRESS,
         abi: STEALTH_REGISTRY_ABI,

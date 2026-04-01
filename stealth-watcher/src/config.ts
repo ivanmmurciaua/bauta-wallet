@@ -103,10 +103,6 @@ export function getNetworkConfig(chainId: number): NetworkConfig {
 
 // ─── RAILGUN error suppressors ────────────────────────────────────────────────
 
-/**
- * Suppresses LevelDB LEVEL_LEGACY errors from RAILGUN internals.
- * Without this the process crashes silently on startup.
- */
 export function avoidRailgunScanningErrors(): void {
   const originalStderr = process.stderr.write.bind(process.stderr);
   process.stderr.write = (chunk: any, ...args: any[]) => {
@@ -115,9 +111,6 @@ export function avoidRailgunScanningErrors(): void {
   };
 }
 
-/**
- * Suppresses unhandled POI refresh rejections from RAILGUN internals.
- */
 export function avoidRailgunErrors(): void {
   process.on("unhandledRejection", (err: any) => {
     if (err?.message?.includes("Failed to refresh POIs")) return;

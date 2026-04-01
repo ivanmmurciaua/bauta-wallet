@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  createPublicClient,
   createWalletClient,
-  http,
+  custom,
   formatEther,
   isAddress,
   getAddress,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { useAccount, useConnect, useSignMessage, useReadContract } from "wagmi";
+import { useAccount, useConnect, useSignMessage, useReadContract, useConnectorClient } from "wagmi";
+import { publicActions } from "viem";
 import {
   deriveStealthKeys,
   checkAnnouncement,
@@ -69,6 +69,8 @@ export default function Dashboard() {
   const { signMessageAsync } = useSignMessage();
   const { pqEnabled } = usePQMode();
   const { chainConfig } = useChain();
+  const { data: connectorClient } = useConnectorClient({ chainId: chainConfig.chain.id });
+  const walletPublicClient = connectorClient?.extend(publicActions);
 
   const schemeId = pqEnabled ? SCHEME_ID_PQ : SCHEME_ID_CLASSIC;
 
@@ -140,7 +142,7 @@ export default function Dashboard() {
         spendingPrivateKey = keys.spendingPrivateKey;
       }
 
-      const client = createPublicClient({ chain: chainConfig.chain, transport: http() });
+      const client = walletPublicClient!;
       const latestBlock = await client.getBlockNumber();
       const fromBlock =
         latestBlock > ANNOUNCEMENT_SCAN_BLOCKS
@@ -244,25 +246,27 @@ export default function Dashboard() {
 
     try {
       const account = privateKeyToAccount(hit.spendingKey);
-      const publicClient = createPublicClient({
-        chain: chainConfig.chain,
-        transport: http(),
-      });
+      const publicClient = walletPublicClient!;
       const walletClient = createWalletClient({
         account,
         chain: chainConfig.chain,
-        transport: http(),
+        transport: custom(connectorClient!.transport),
       });
 
       const { maxFeePerGas } = await publicClient.estimateFeesPerGas();
-      const gasCost = 21000n * (maxFeePerGas ?? 0n);
+      const gasEstimate = await publicClient.estimateGas({
+        account,
+        to: getAddress(dest) as `0x${string}`,
+        value: 0n,
+      });
+      const gasCost = gasEstimate * (maxFeePerGas ?? 0n);
       const value = hit.balance - gasCost;
       if (value <= 0n) throw new Error("Balance too low to cover gas");
 
       const txHash = await walletClient.sendTransaction({
         to: getAddress(dest) as `0x${string}`,
         value,
-        gas: 21000n,
+        gas: gasEstimate,
       });
 
       setWithdrawTxHash((s) => ({ ...s, [hit.stealthAddress]: txHash }));

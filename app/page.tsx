@@ -95,6 +95,7 @@ export default function Home() {
     abi: STEALTH_REGISTRY_ABI,
     functionName: "stealthMetaAddressOf",
     args: [address ?? "0x0000000000000000000000000000000000000000", schemeId],
+    chainId: chainConfig.chain.id,
     query: { enabled: isConnected && !!address },
   });
   const minLen = pqEnabled ? 2504 : 136; // hex chars: 1251*2+2 vs 67*2+2
@@ -108,11 +109,8 @@ export default function Home() {
     chainId: chainConfig.chain.id,
     query: { enabled: isConnected && !!address },
   });
-  // only block if we have a confirmed 0 balance — never block while loading
-  const hasGas =
-    balanceLoading ||
-    balanceData === undefined ||
-    (balanceData.value ?? 0n) > 0n;
+  // block until balance is confirmed > 0 — disabled by default while loading or unknown
+  const hasGas = !balanceLoading && balanceData !== undefined && (balanceData.value ?? 0n) > 0n;
 
   const handleSign = async () => {
     setSigning(true);
