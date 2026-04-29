@@ -1,23 +1,86 @@
-import { sepolia, arbitrum, polygon } from "viem/chains";
+import {
+  mainnet,
+  sepolia,
+  arbitrum,
+  base,
+  optimism,
+  polygon,
+  gnosis,
+  ink,
+} from "viem/chains";
 import type { Chain } from "viem";
 
 // ── Supported chains ──────────────────────────────────────────────────────────
 
 export interface ChainConfig {
-  chain:    Chain;
-  label:    string;
+  chain: Chain;
+  label: string;
   explorer: string; // base tx URL: explorer + "/tx/" + hash
-  testnet:  boolean;
+  testnet: boolean;
+  railgunSupported: boolean; // RAILGUN shield/unshield available
 }
 
 export const SUPPORTED_CHAINS: ChainConfig[] = [
-  { chain: arbitrum, label: "Arbitrum", explorer: "https://arbiscan.io",          testnet: false },
-  { chain: polygon,  label: "Polygon",  explorer: "https://polygonscan.com",      testnet: false },
-  { chain: sepolia,  label: "Sepolia",  explorer: "https://sepolia.etherscan.io", testnet: true  },
+  {
+    chain: mainnet,
+    label: "Ethereum",
+    explorer: "https://etherscan.io",
+    testnet: false,
+    railgunSupported: false,
+  }, //TODO: Add into RAILGUN config
+  {
+    chain: arbitrum,
+    label: "Arbitrum",
+    explorer: "https://arbiscan.io",
+    testnet: false,
+    railgunSupported: true,
+  },
+  {
+    chain: base,
+    label: "Base",
+    explorer: "https://basescan.io",
+    testnet: false,
+    railgunSupported: false,
+  },
+  {
+    chain: optimism,
+    label: "Optimism",
+    explorer: "https://optimistic.etherscan.io",
+    testnet: false,
+    railgunSupported: false,
+  },
+  {
+    chain: polygon,
+    label: "Polygon",
+    explorer: "https://polygonscan.com",
+    testnet: false,
+    railgunSupported: true,
+  },
+  {
+    chain: gnosis,
+    label: "Gnosis",
+    explorer: "https://gnosisscan.io",
+    testnet: false,
+    railgunSupported: false,
+  },
+  {
+    chain: ink,
+    label: "Ink",
+    explorer: "https://explorer.inkonchain.com",
+    testnet: false,
+    railgunSupported: false,
+  },
+  {
+    chain: sepolia,
+    label: "Sepolia",
+    explorer: "https://sepolia.etherscan.io",
+    testnet: true,
+    railgunSupported: true,
+  },
 ];
 
 export const CHAIN_BY_ID: Record<number, ChainConfig> = Object.fromEntries(
-  SUPPORTED_CHAINS.map(c => [c.chain.id, c])
+  SUPPORTED_CHAINS.map((c) => [c.chain.id, c]),
 );
 
 export const DEFAULT_CHAIN_ID = sepolia.id;
@@ -38,10 +101,10 @@ export const STEALTH_ANNOUNCER_ABI = [
     name: "announce",
     stateMutability: "nonpayable",
     inputs: [
-      { name: "schemeId",        type: "uint256" },
-      { name: "stealthAddress",  type: "address" },
-      { name: "ephemeralPubKey", type: "bytes"   },
-      { name: "metadata",        type: "bytes"   },
+      { name: "schemeId", type: "uint256" },
+      { name: "stealthAddress", type: "address" },
+      { name: "ephemeralPubKey", type: "bytes" },
+      { name: "metadata", type: "bytes" },
     ],
     outputs: [],
   },
@@ -49,7 +112,7 @@ export const STEALTH_ANNOUNCER_ABI = [
 
 // ── SchemeIds ─────────────────────────────────────────────────────────────────
 export const SCHEME_ID_CLASSIC = 2n;
-export const SCHEME_ID_PQ      = 4n;
+export const SCHEME_ID_PQ = 4n;
 
 // ── Scan window ───────────────────────────────────────────────────────────────
 export const ANNOUNCEMENT_SCAN_BLOCKS = 20_000n;

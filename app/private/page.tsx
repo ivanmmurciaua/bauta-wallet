@@ -208,7 +208,15 @@ export default function PrivateDashboard() {
 
       {/* Balance Card */}
       <div className="animate-fade-up delay-1 page-col" style={{ border: "1px solid var(--border)" }}>
-        {!watcherReady ? (
+        {!chainConfig.railgunSupported ? (
+          <div style={{ padding: "var(--card-pad)" }}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.8 }}>
+              // RAILGUN is not available on {chainConfig.label}
+              <br />
+              <span style={{ fontSize: 10 }}>Switch to Ethereum, Arbitrum, Polygon or Sepolia to use private balances.</span>
+            </p>
+          </div>
+        ) : !watcherReady ? (
           <div style={{ padding: "var(--card-pad)" }}>
             <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.8 }}>
               ✗ stealth-watcher offline
