@@ -2,20 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import {
-  createPublicClient,
-  http,
-  isAddress,
-  getAddress,
-  parseEther,
-  concat,
-  toHex,
-} from "viem";
+import { isAddress, getAddress, parseEther, concat, toHex } from "viem";
 import {
   useAccount,
   useConnect,
   useSendTransaction,
   useWriteContract,
+  usePublicClient,
 } from "wagmi";
 import {
   generateStealthAddress,
@@ -26,7 +19,6 @@ import {
 } from "@/lib/stealth";
 import { generatePQStealthAddress, parsePQMetaAddress } from "@/lib/stealth-pq";
 import {
-
   STEALTH_ANNOUNCER_ADDRESS,
   STEALTH_ANNOUNCER_ABI,
   SCHEME_ID_CLASSIC,
@@ -57,6 +49,7 @@ export default function LookupPage() {
   const { writeContractAsync } = useWriteContract();
   const { pqEnabled } = usePQMode();
   const { chainConfig } = useChain();
+  const publicClient = usePublicClient({ chainId: chainConfig.chain.id });
 
   const schemeId = pqEnabled ? SCHEME_ID_PQ : SCHEME_ID_CLASSIC;
 
@@ -90,7 +83,7 @@ export default function LookupPage() {
     setResult(null);
     setSentTx(null);
     try {
-      const client = createPublicClient({ chain: chainConfig.chain, transport: http() });
+      const client = publicClient!;
       const raw = await client.readContract({
         address: STEALTH_REGISTRY_ADDRESS,
         abi: STEALTH_REGISTRY_ABI,
@@ -182,10 +175,7 @@ export default function LookupPage() {
   return (
     <main className="page">
       {/* Header */}
-      <div
-        className="animate-fade-up page-col"
-        style={{ marginBottom: 40 }}
-      >
+      <div className="animate-fade-up page-col" style={{ marginBottom: 40 }}>
         <div
           style={{
             display: "flex",
@@ -245,6 +235,51 @@ export default function LookupPage() {
             </span>
           )}
         </p>
+      </div>
+
+      <div
+        className="animate-fade-up page-col"
+        style={{
+          marginBottom: 16,
+          padding: "10px 14px",
+          background: "rgba(99,102,241,0.06)",
+          border: "1px solid rgba(99,102,241,0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            color: "var(--text-muted)",
+            lineHeight: 1.7,
+          }}
+        >
+          Want to send cross-chain? Use bauta lookup — scan all chains at once.
+        </p>
+        <a
+          href={
+            process.env.NEXT_PUBLIC_BAUTA_LOOKUP_URL ??
+            "https://ipfs.io/ipfs/bafybeifykxystts3banvtvbcgmizqfhptsvtjb37i4ja5wv5cwog5o3doq"
+          }
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            color: "var(--green)",
+            textDecoration: "none",
+            border: "1px solid var(--green-dim)",
+            padding: "5px 12px",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
+          bauta lookup →
+        </a>
       </div>
 
       <div

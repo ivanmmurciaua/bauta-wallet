@@ -29,8 +29,6 @@ import {
   NETWORK_CONFIG,
   TXIDVersion,
   EVMGasType,
-  NetworkName,
-  getEVMGasTypeForTransaction,
 } from "@railgun-community/shared-models";
 import type { RailgunERC20AmountRecipient, RailgunERC20Amount } from "@railgun-community/shared-models";
 import {
@@ -46,7 +44,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { RAILGUN_NETWORK, PROVIDER, RPC_CONFIG, MIN_SHIELD_AMOUNT } from "./config.js";
+import { NETWORKS, DEFAULT_CHAIN_ID, MIN_SHIELD_AMOUNT } from "./config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ARTIFACTS_DIR = path.join(__dirname, "..", ".railgun-artifacts");
@@ -106,10 +104,11 @@ export async function initRailgunEngine(): Promise<void> {
 async function addNetworks(): Promise<void> {
   const { loadProvider } = await import("@railgun-community/wallet");
 
-  await loadProvider(
-    { chainId: RPC_CONFIG.chainId, providers: RPC_CONFIG.providers },
-    RAILGUN_NETWORK,
-  );
+  // Load all supported networks into the engine
+  for (const nc of Object.values(NETWORKS)) {
+    await loadProvider(nc.rpcConfig, nc.railgunNetwork);
+    console.log(`      Provider loaded: ${nc.railgunNetwork} (chainId ${nc.chainId})`);
+  }
 }
 
 // ─── Wallet management ───────────────────────────────────────────────────────
@@ -118,9 +117,13 @@ export async function createWallet(
   mnemonic: string,
   encryptionKey: string,
 ): Promise<{ walletId: string; railgunAddress: string }> {
-  const creationBlockMap = {
-    [RAILGUN_NETWORK]: NETWORK_CONFIG[RAILGUN_NETWORK].deploymentBlock,
-  };
+  // Include all supported networks in the creation block map
+  const creationBlockMap = Object.fromEntries(
+    Object.values(NETWORKS).map(nc => [
+      nc.railgunNetwork,
+      NETWORK_CONFIG[nc.railgunNetwork].deploymentBlock,
+    ])
+  );
   const info = await createRailgunWallet(encryptionKey, mnemonic, creationBlockMap);
   return { walletId: info.id, railgunAddress: info.railgunAddress };
 }
@@ -135,16 +138,18 @@ export async function loadWallet(
 // ─── Balances ─────────────────────────────────────────────────────────────────
 
 const TOKEN_SYMBOLS: Record<string, string> = {
-  "0xfff9976782d46cc05630d1f6ebab18b2324d6b14": "WETH", // Sepolia
-  "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "WETH", // Arbitrum One
-  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "WETH", // Mainnet
-  "0xaf88d065e77c8cc2239327c5edb3a432268e5831": "USDC", // Arbitrum One
+  "0xfff9976782d46cc05630d1f6ebab18b2324d6b14": "WETH",  // Sepolia
+  "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": "WETH",  // Arbitrum One
+  "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": "WETH",  // Mainnet
+  "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270": "WMATIC", // Polygon
+  "0xaf88d065e77c8cc2239327c5edb3a432268e5831": "USDC",  // Arbitrum One
 };
 
 const TOKEN_DECIMALS: Record<string, number> = {
   "0xfff9976782d46cc05630d1f6ebab18b2324d6b14": 18,
   "0x82af49447d8a07e3bd95bd0d56f35241523fbab1": 18,
   "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2": 18,
+  "0x0d500b1d8e8ef31e21c99d1db9a6444d3adf1270": 18,
   "0xaf88d065e77c8cc2239327c5edb3a432268e5831": 6,
 };
 
@@ -152,9 +157,8 @@ interface TokenBalance { spendable: bigint; pending: bigint; }
 let railgunBalances: Record<string, TokenBalance> = {};
 
 export function setupBalanceCallback(): void {
-  const chain = NETWORK_CONFIG[RAILGUN_NETWORK].chain;
+  // Accept balance updates from all loaded networks
   setOnBalanceUpdateCallback((event: RailgunBalancesEvent) => {
-    if (event.chain.id !== chain.id) return;
     for (const e of event.erc20Amounts) {
       const token = e.tokenAddress.toLowerCase();
       if (!railgunBalances[token]) railgunBalances[token] = { spendable: 0n, pending: 0n };
@@ -167,11 +171,13 @@ export function setupBalanceCallback(): void {
   });
 }
 
-export async function getBalances(walletId: string): Promise<Array<{
+export async function getBalances(walletId: string, chainId: number = DEFAULT_CHAIN_ID): Promise<Array<{
   token: string; symbol: string; decimals: number; spendable: string; pending: string;
 }>> {
   railgunBalances = {};
-  const chain = NETWORK_CONFIG[RAILGUN_NETWORK].chain;
+  const nc = NETWORKS[chainId];
+  if (!nc) throw new Error(`Unsupported chainId: ${chainId}`);
+  const chain = NETWORK_CONFIG[nc.railgunNetwork].chain;
   await Promise.race([
     refreshBalances(chain, [walletId]),
     new Promise(r => setTimeout(r, 30_000)),
@@ -196,15 +202,19 @@ export async function shieldETH(
   eoa: StealthEOA,
   railgunAddress: string,
   amount: bigint,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<string> {
   if (amount < MIN_SHIELD_AMOUNT) {
-    throw new Error(`Insufficient balance to shield. Minimum: 0.01 ETH`);
+    throw new Error(`Insufficient balance to shield. Minimum: 0.01`);
   }
 
-  const signer = new Wallet(eoa.privateKey, PROVIDER);
+  const nc = NETWORKS[chainId];
+  if (!nc) throw new Error(`Unsupported chainId: ${chainId}`);
+
+  const signer = new Wallet(eoa.privateKey, nc.provider);
   const shieldPrivateKey = signer.signingKey.privateKey as `0x${string}`;
 
-  const wrappedAddress = NETWORK_CONFIG[RAILGUN_NETWORK].baseToken.wrappedAddress;
+  const wrappedAddress = NETWORK_CONFIG[nc.railgunNetwork].baseToken.wrappedAddress;
 
   const erc20AmountRecipient: RailgunERC20AmountRecipient = {
     tokenAddress: wrappedAddress,
@@ -214,7 +224,7 @@ export async function shieldETH(
 
   const gasEstimateResponse = await gasEstimateForShieldBaseToken(
     TXIDVersion.V2_PoseidonMerkle,
-    RAILGUN_NETWORK,
+    nc.railgunNetwork,
     railgunAddress,
     shieldPrivateKey,
     erc20AmountRecipient,
@@ -222,7 +232,7 @@ export async function shieldETH(
   );
   const gasEstimate = gasEstimateResponse.gasEstimate;
 
-  const feeData = await PROVIDER.getFeeData();
+  const feeData = await nc.provider.getFeeData();
   const maxFeePerGas = feeData.maxFeePerGas ?? 20_000_000_000n;
   const maxPriorityFeePerGas = feeData.maxPriorityFeePerGas ?? 1_000_000_000n;
 
@@ -234,15 +244,17 @@ export async function shieldETH(
     throw new Error(`Insufficient balance to cover gas. Balance: ${amount}, cost: ${gasCost}`);
   }
 
-  const evmGasType = getEVMGasTypeForTransaction(RAILGUN_NETWORK, true);
-  const shieldGasDetails =
-    evmGasType === EVMGasType.Type2
-      ? { evmGasType, gasEstimate, maxFeePerGas, maxPriorityFeePerGas }
-      : { evmGasType: evmGasType as EVMGasType.Type1, gasEstimate, gasPrice: maxFeePerGas };
+  // Shield txs use Type2 (EIP-1559) on all supported networks
+  const shieldGasDetails: import("@railgun-community/shared-models").TransactionGasDetailsType2 = {
+    evmGasType: EVMGasType.Type2,
+    gasEstimate,
+    maxFeePerGas,
+    maxPriorityFeePerGas,
+  };
 
   const populateResponse = await populateShieldBaseToken(
     TXIDVersion.V2_PoseidonMerkle,
-    RAILGUN_NETWORK,
+    nc.railgunNetwork,
     railgunAddress,
     shieldPrivateKey,
     { ...erc20AmountRecipient, amount: netAmount },
@@ -259,31 +271,35 @@ export async function shieldETH(
   return tx.hash;
 }
 
-// ─── Unshield base token (ETH) via Waku broadcaster ──────────────────────────
+// ─── Unshield base token (ETH/MATIC) via Waku broadcaster ────────────────────
 
 export async function unshieldBaseToken(
   walletId: string,
   encryptionKey: string,
   toAddress: string,
   amount: bigint,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<string> {
-  const chain = NETWORK_CONFIG[RAILGUN_NETWORK].chain;
-  const wrappedAddress = NETWORK_CONFIG[RAILGUN_NETWORK].baseToken.wrappedAddress;
+  const nc = NETWORKS[chainId];
+  if (!nc) throw new Error(`Unsupported chainId: ${chainId}`);
+
+  const chain = NETWORK_CONFIG[nc.railgunNetwork].chain;
+  const wrappedAddress = NETWORK_CONFIG[nc.railgunNetwork].baseToken.wrappedAddress;
 
   const wrappedERC20Amount: RailgunERC20Amount = {
     tokenAddress: wrappedAddress,
     amount,
   };
 
-  // Step 1 — find broadcaster (pays fee in WETH)
-  const broadcaster = await findBroadcasterForToken(wrappedAddress);
+  // Step 1 — find broadcaster (pays fee in wrapped native token)
+  const broadcaster = await findBroadcasterForToken(wrappedAddress, chainId);
   const feeTokenDetails = getFeeTokenDetails(broadcaster);
-  const initialGasDetails = await getInitialGasDetails();
+  const initialGasDetails = await getInitialGasDetails(chainId);
 
   // Step 2 — estimate gas
   const gasEstimateResponse = await gasEstimateForUnprovenUnshieldBaseToken(
     TXIDVersion.V2_PoseidonMerkle,
-    RAILGUN_NETWORK,
+    nc.railgunNetwork,
     toAddress,
     walletId,
     encryptionKey,
@@ -296,13 +312,13 @@ export async function unshieldBaseToken(
 
   // Step 3 — build broadcaster gas config
   const { broadcasterFeeERC20AmountRecipient, overallBatchMinGasPrice, gasDetails } =
-    await buildBroadcasterGasConfig(broadcaster, initialGasDetails, gasEstimate);
+    await buildBroadcasterGasConfig(broadcaster, initialGasDetails, gasEstimate, chainId);
 
   // Step 4 — generate ZK proof (~5-30s)
   console.log("[unshield] generating ZK proof...");
   await generateUnshieldBaseTokenProof(
     TXIDVersion.V2_PoseidonMerkle,
-    RAILGUN_NETWORK,
+    nc.railgunNetwork,
     toAddress,
     walletId,
     encryptionKey,
@@ -318,7 +334,7 @@ export async function unshieldBaseToken(
   // Step 5 — populate
   const populateResponse = await populateProvedUnshieldBaseToken(
     TXIDVersion.V2_PoseidonMerkle,
-    RAILGUN_NETWORK,
+    nc.railgunNetwork,
     toAddress,
     walletId,
     wrappedERC20Amount,
@@ -360,8 +376,12 @@ export async function privateTransfer(
   toRailgunAddress: string,
   tokenAddress: string,
   amount: bigint,
+  chainId: number = DEFAULT_CHAIN_ID,
 ): Promise<string> {
-  const chain = NETWORK_CONFIG[RAILGUN_NETWORK].chain;
+  const nc = NETWORKS[chainId];
+  if (!nc) throw new Error(`Unsupported chainId: ${chainId}`);
+
+  const chain = NETWORK_CONFIG[nc.railgunNetwork].chain;
 
   const erc20AmountRecipient: RailgunERC20AmountRecipient = {
     tokenAddress,
@@ -370,14 +390,14 @@ export async function privateTransfer(
   };
 
   // Step 1 — find broadcaster (pays fee in same token)
-  const broadcaster = await findBroadcasterForToken(tokenAddress);
+  const broadcaster = await findBroadcasterForToken(tokenAddress, chainId);
   const feeTokenDetails = getFeeTokenDetails(broadcaster);
-  const initialGasDetails = await getInitialGasDetails();
+  const initialGasDetails = await getInitialGasDetails(chainId);
 
   // Step 2 — estimate gas
   const gasEstimateResponse = await gasEstimateForUnprovenTransfer(
     TXIDVersion.V2_PoseidonMerkle,
-    RAILGUN_NETWORK,
+    nc.railgunNetwork,
     walletId,
     encryptionKey,
     undefined, // memoText
@@ -391,13 +411,13 @@ export async function privateTransfer(
 
   // Step 3 — build broadcaster gas config
   const { broadcasterFeeERC20AmountRecipient, overallBatchMinGasPrice, gasDetails } =
-    await buildBroadcasterGasConfig(broadcaster, initialGasDetails, gasEstimate);
+    await buildBroadcasterGasConfig(broadcaster, initialGasDetails, gasEstimate, chainId);
 
   // Step 4 — generate ZK proof
   console.log("[transfer] generating ZK proof...");
   await generateTransferProof(
     TXIDVersion.V2_PoseidonMerkle,
-    RAILGUN_NETWORK,
+    nc.railgunNetwork,
     walletId,
     encryptionKey,
     false,       // showSenderAddressToRecipient
@@ -415,7 +435,7 @@ export async function privateTransfer(
   // Step 5 — populate
   const populateResponse = await populateProvedTransfer(
     TXIDVersion.V2_PoseidonMerkle,
-    RAILGUN_NETWORK,
+    nc.railgunNetwork,
     walletId,
     false,
     undefined,

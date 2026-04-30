@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
-  createPublicClient,
   createWalletClient,
-  http,
+  custom,
   formatEther,
   isAddress,
   getAddress,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { useAccount, useConnect, useSignMessage, useReadContract } from "wagmi";
+import { useAccount, useConnect, useSignMessage, useReadContract, useConnectorClient } from "wagmi";
+import { publicActions } from "viem";
 import {
   deriveStealthKeys,
   checkAnnouncement,
@@ -69,6 +69,8 @@ export default function Dashboard() {
   const { signMessageAsync } = useSignMessage();
   const { pqEnabled } = usePQMode();
   const { chainConfig } = useChain();
+  const { data: connectorClient } = useConnectorClient({ chainId: chainConfig.chain.id });
+  const walletPublicClient = connectorClient?.extend(publicActions);
 
   const schemeId = pqEnabled ? SCHEME_ID_PQ : SCHEME_ID_CLASSIC;
 
@@ -140,7 +142,7 @@ export default function Dashboard() {
         spendingPrivateKey = keys.spendingPrivateKey;
       }
 
-      const client = createPublicClient({ chain: chainConfig.chain, transport: http() });
+      const client = walletPublicClient!;
       const latestBlock = await client.getBlockNumber();
       const fromBlock =
         latestBlock > ANNOUNCEMENT_SCAN_BLOCKS
@@ -244,25 +246,28 @@ export default function Dashboard() {
 
     try {
       const account = privateKeyToAccount(hit.spendingKey);
-      const publicClient = createPublicClient({
-        chain: chainConfig.chain,
-        transport: http(),
-      });
+      const publicClient = walletPublicClient!;
       const walletClient = createWalletClient({
         account,
         chain: chainConfig.chain,
-        transport: http(),
+        transport: custom(connectorClient!.transport),
       });
 
-      const { maxFeePerGas } = await publicClient.estimateFeesPerGas();
-      const gasCost = 21000n * (maxFeePerGas ?? 0n);
+      const gasPrice = await publicClient.getGasPrice();
+      const gasEstimate = await publicClient.estimateGas({
+        account,
+        to: getAddress(dest) as `0x${string}`,
+        value: 0n,
+      });
+      const gasCost = gasEstimate * gasPrice;
       const value = hit.balance - gasCost;
       if (value <= 0n) throw new Error("Balance too low to cover gas");
 
       const txHash = await walletClient.sendTransaction({
         to: getAddress(dest) as `0x${string}`,
         value,
-        gas: 21000n,
+        gas: gasEstimate,
+        gasPrice,
       });
 
       setWithdrawTxHash((s) => ({ ...s, [hit.stealthAddress]: txHash }));
@@ -293,6 +298,7 @@ export default function Dashboard() {
           stealthAddress: hit.stealthAddress,
           stealthPrivKey: hit.spendingKey,
           amount: hit.balance.toString(),
+          chainId: chainConfig.chain.id,
         }),
       });
       const data = await res.json();
@@ -426,7 +432,8 @@ export default function Dashboard() {
           </div>
         ) : (
           <div style={{ padding: "var(--card-pad)" }}>
-            {!isRegistered ? (
+            {/* not registered (<> mode) — registration check disabled for testing */}
+            {!isRegistered && false ? (
               <div style={{ textAlign: "center", padding: "20px 0" }}>
                 <p
                   style={{
@@ -937,8 +944,8 @@ export default function Dashboard() {
                             </div>
                           )}
 
-                          {/* Shield to RAILGUN */}
-                          {hasBalance && watcherReady && (
+                          {/* Shield to RAILGUN — only on RAILGUN-supported chains */}
+                          {hasBalance && watcherReady && chainConfig.railgunSupported && (
                             <div style={{ padding: "10px 12px", background: "#04080a", border: "1px solid #0e2030", marginTop: 6 }}>
                               <p style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>
                                 Shield to RAILGUN

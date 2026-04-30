@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { formatUnits, parseUnits } from "viem";
 import { WATCHER_URL } from "@/lib/constants";
+import { useChain } from "@/contexts/ChainContext";
 
 interface TokenBalance {
   token:     string;
@@ -17,6 +18,7 @@ type LoadStatus = "idle" | "loading" | "done" | "error";
 type TxStatus   = "idle" | "pending" | "done" | "error";
 
 export default function PrivateDashboard() {
+  const { chainConfig } = useChain();
   const [watcherReady, setWatcherReady]         = useState(false);
   const [broadcasterReady, setBroadcasterReady] = useState(false);
   const [railgunAddress, setRailgunAddress]     = useState<string | null>(null);
@@ -39,6 +41,17 @@ export default function PrivateDashboard() {
   const [transferStatus, setTransferStatus] = useState<TxStatus>("idle");
   const [transferTx, setTransferTx]       = useState<string | null>(null);
   const [transferErr, setTransferErr]     = useState<string | null>(null);
+
+  // Reset all state when chain changes
+  useEffect(() => {
+    setBalances([]);
+    setStatus("idle");
+    setError(null);
+    setUnshieldTo(""); setUnshieldAmt(""); setUnshieldToken("");
+    setUnshieldStatus("idle"); setUnshieldTx(null); setUnshieldErr(null);
+    setTransferTo(""); setTransferAmt(""); setTransferToken("");
+    setTransferStatus("idle"); setTransferTx(null); setTransferErr(null);
+  }, [chainConfig.chain.id]);
 
   useEffect(() => {
     fetch(`${WATCHER_URL}/ready`, { signal: AbortSignal.timeout(2000) })
@@ -68,7 +81,7 @@ export default function PrivateDashboard() {
     setStatus("loading");
     setError(null);
     try {
-      const res = await fetch(`${WATCHER_URL}/balance`);
+      const res = await fetch(`${WATCHER_URL}/balance?chainId=${chainConfig.chain.id}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to fetch balances");
       setBalances(data.balances ?? []);
@@ -90,7 +103,7 @@ export default function PrivateDashboard() {
       const res = await fetch(`${WATCHER_URL}/unshield`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toAddress: unshieldTo, amount }),
+        body: JSON.stringify({ toAddress: unshieldTo, amount, chainId: chainConfig.chain.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Unshield failed");
@@ -115,7 +128,7 @@ export default function PrivateDashboard() {
       const res = await fetch(`${WATCHER_URL}/transfer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ toRailgunAddress: transferTo, tokenAddress: transferToken, amount }),
+        body: JSON.stringify({ toRailgunAddress: transferTo, tokenAddress: transferToken, amount, chainId: chainConfig.chain.id }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Transfer failed");
@@ -185,6 +198,9 @@ export default function PrivateDashboard() {
           Private dashboard
           <span className="cursor-blink" />
         </h1>
+        <p style={{ marginTop: 10, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, fontWeight: 300, background: "rgba(255,180,0,0.07)", border: "1px solid rgba(255,180,0,0.2)", borderRadius: 6, padding: "8px 12px" }}>
+          ⚠ RAILGUN can be flaky — if balances don&apos;t load or operations fail, just retry. It&apos;s not you.
+        </p>
         <p style={{ marginTop: 10, fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.7, fontWeight: 300 }}>
           Your RAILGUN shielded balance — private by default.
         </p>
@@ -192,7 +208,15 @@ export default function PrivateDashboard() {
 
       {/* Balance Card */}
       <div className="animate-fade-up delay-1 page-col" style={{ border: "1px solid var(--border)" }}>
-        {!watcherReady ? (
+        {!chainConfig.railgunSupported ? (
+          <div style={{ padding: "var(--card-pad)" }}>
+            <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.8 }}>
+              // RAILGUN is not available on {chainConfig.label}
+              <br />
+              <span style={{ fontSize: 10 }}>Switch to Ethereum, Arbitrum, Polygon or Sepolia to use private balances.</span>
+            </p>
+          </div>
+        ) : !watcherReady ? (
           <div style={{ padding: "var(--card-pad)" }}>
             <p style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.8 }}>
               ✗ stealth-watcher offline

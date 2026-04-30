@@ -23,7 +23,7 @@
     "@noble/post-quantum": "^0.5.4",
     "@noble/secp256k1": "^3.0.0",
     "@railgun-community/shared-models": "^8.0.1",
-    "@railgun-community/waku-broadcaster-client-node": "^9.0.6",
+    "@railgun-community/waku-broadcaster-client-node": "^9.1.0",
     "@railgun-community/wallet": "^10.8.4",
     "chalk": "^5.6.2",
     "ethers": "^6.14.3",

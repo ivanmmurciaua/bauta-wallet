@@ -12,7 +12,7 @@ export function ChainSelector() {
   if (!isConnected) return null;
 
   return (
-    <div style={{ position: "fixed", top: 18, left: 20, zIndex: 100 }}>
+    <div style={{ position: "fixed", bottom: 18, left: 20, zIndex: 100 }}>
       <button
         onClick={() => setOpen(o => !o)}
         style={{
@@ -36,7 +36,7 @@ export function ChainSelector() {
 
       {open && (
         <div style={{
-          position: "absolute", top: "calc(100% + 4px)", left: 0,
+          position: "absolute", bottom: "calc(100% + 4px)", left: 0,
           background: "#0a0e12", border: "1px solid var(--border)",
           minWidth: 160, zIndex: 101,
         }}>
