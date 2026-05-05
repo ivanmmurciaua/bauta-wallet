@@ -118,7 +118,7 @@ export const SCHEME_ID_PQ = 4n;
 export const ANNOUNCEMENT_SCAN_BLOCKS = 20_000n;
 
 // ── Dust filter ───────────────────────────────────────────────────────────────
-export const MIN_STEALTH_BALANCE = 10_000_000_000_000n; // 0.00001 ETH
+export const MIN_STEALTH_BALANCE = 1_000_000_000n; // 0.000000001 ETH
 
 // ── stealth-watcher backend ───────────────────────────────────────────────────
 export const WATCHER_URL = `http://localhost:${process.env.NEXT_PUBLIC_WATCHER_PORT ?? "8765"}`;

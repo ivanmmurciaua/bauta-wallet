@@ -258,12 +258,13 @@ export default function LookupPage() {
             lineHeight: 1.7,
           }}
         >
-          Want to send cross-chain? Use bauta lookup — scan all chains at once.
+          This lookup works ONLY with the selected network. Want to send
+          cross-chain? Scan all chains at once →
         </p>
         <a
           href={
             process.env.NEXT_PUBLIC_BAUTA_LOOKUP_URL ??
-            "https://ipfs.io/ipfs/bafybeifykxystts3banvtvbcgmizqfhptsvtjb37i4ja5wv5cwog5o3doq"
+            "https://bautawallet.com/lookup"
           }
           target="_blank"
           rel="noopener noreferrer"
@@ -278,7 +279,7 @@ export default function LookupPage() {
             flexShrink: 0,
           }}
         >
-          bauta lookup →
+          bauta lookup
         </a>
       </div>
 
@@ -307,7 +308,7 @@ export default function LookupPage() {
               type="text"
               value={recipient}
               onChange={(e) => setRecipient(e.target.value)}
-              placeholder="0x..."
+              // placeholder="address"
               spellCheck={false}
               style={{
                 width: "100%",

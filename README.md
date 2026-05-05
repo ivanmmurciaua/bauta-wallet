@@ -29,7 +29,6 @@ Meta-address sizes: 67 bytes (classic) vs 1251 bytes (PQ, includes 1184-byte ML-
 bauta-wallet/
   app/                  ← Next.js frontend (default port 8766)
   stealth-watcher/      ← Backend: RAILGUN engine + Waku broadcaster (default port 8765)
-  lookup-standalone/    ← Standalone HTML for IPFS — no backend needed
 ```
 
 ## Running locally
@@ -118,4 +117,3 @@ For the stealth-watcher backend, set `RPC_URL` in your environment or `stealth-w
 - @noble/secp256k1, @noble/post-quantum (ML-KEM-768)
 - RAILGUN SDK (@railgun-community/wallet)
 - Waku broadcaster (@railgun-community/waku-broadcaster-client-node)
-- esbuild (lookup standalone bundler)

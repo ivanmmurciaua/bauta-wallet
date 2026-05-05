@@ -47,6 +47,28 @@ export default function Home() {
   const [mlkemDecapsKey, setMlkemDecapsKey] = useState<string | null>(null); // hex, PQ only
   const [activeSchemeId, setActiveSchemeId] = useState<string>("2");
 
+  // Relay key export
+  // const [relayKeysCopied, setRelayKeysCopied] = useState<"spend" | "view" | null>(null);
+  // const [exportingRelayKeys, setExportingRelayKeys] = useState(false);
+  // const copyRelayKey = (type: "spend" | "view") => {
+  //   const val = type === "spend" ? spendKey : viewKey;
+  //   if (!val) return;
+  //   navigator.clipboard.writeText(val);
+  //   setRelayKeysCopied(type);
+  //   setTimeout(() => setRelayKeysCopied(null), 2000);
+  // };
+  // const handleExportRelayKeys = async () => {
+  //   setExportingRelayKeys(true);
+  //   try {
+  //     const sig = await signMessageAsync({ message: SIGNING_MESSAGE });
+  //     const keys = pqEnabled ? await (await import("@/lib/stealth-pq")).derivePQKeys(sig) : await deriveStealthKeys(sig);
+  //     setSpendKey(keys.spendingPrivateKey);
+  //     setViewKey(keys.viewingPrivateKey);
+  //   } catch { /* user rejected */ } finally {
+  //     setExportingRelayKeys(false);
+  //   }
+  // };
+
   // Auto-shield
   const [watcherReady, setWatcherReady] = useState(false);
   const [autoShield, setAutoShield] = useState(false);
@@ -110,7 +132,10 @@ export default function Home() {
     query: { enabled: isConnected && !!address },
   });
   // block until balance is confirmed > 0 — disabled by default while loading or unknown
-  const hasGas = !balanceLoading && balanceData !== undefined && (balanceData.value ?? 0n) > 0n;
+  const hasGas =
+    !balanceLoading &&
+    balanceData !== undefined &&
+    (balanceData.value ?? 0n) > 0n;
 
   const handleSign = async () => {
     setSigning(true);
@@ -322,6 +347,105 @@ export default function Home() {
                     ✓ {pqEnabled ? "PQ" : "Classic"} meta-address live on-chain
                   </span>
                 </p>
+                {/* Export relay keys */}
+                {/*{isRegistered && !spendKey && (
+                  <div style={{ marginTop: 14 }}>
+                    <button
+                      onClick={handleExportRelayKeys}
+                      disabled={exportingRelayKeys}
+                      style={{
+                        background: "none",
+                        border: "1px solid var(--border)",
+                        borderRadius: 4,
+                        padding: "6px 12px",
+                        cursor: exportingRelayKeys ? "not-allowed" : "pointer",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 10,
+                        color: "var(--text-muted)",
+                        opacity: exportingRelayKeys ? 0.5 : 1,
+                      }}
+                    >
+                      {exportingRelayKeys ? "signing…" : "export relay keys →"}
+                    </button>
+                  </div>
+                )}
+                {spendKey && viewKey && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      paddingTop: 14,
+                      borderTop: "1px solid var(--border)",
+                    }}
+                  >
+                    <p
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 9,
+                        color: "var(--text-muted)",
+                        marginBottom: 8,
+                        letterSpacing: "0.06em",
+                      }}
+                    >
+                      ⚠ KEEP THESE PRIVATE — use as SPEND_KEY / VIEW_KEY in
+                      bauta-relay
+                    </p>
+                    {(["spend", "view"] as const).map((type) => (
+                      <div key={type} style={{ marginBottom: 6 }}>
+                        <p
+                          style={{
+                            fontFamily: "var(--font-mono)",
+                            fontSize: 9,
+                            color: "var(--text-muted)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.1em",
+                            marginBottom: 3,
+                          }}
+                        >
+                          {type}_key
+                        </p>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: 8,
+                            alignItems: "center",
+                          }}
+                        >
+                          <code
+                            style={{
+                              fontSize: 9,
+                              color: "var(--green-dim)",
+                              wordBreak: "break-all",
+                              flex: 1,
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            {type === "spend" ? spendKey : viewKey}
+                          </code>
+                          <button
+                            onClick={() => copyRelayKey(type)}
+                            style={{
+                              flexShrink: 0,
+                              background: "none",
+                              border: "1px solid var(--border)",
+                              borderRadius: 4,
+                              padding: "2px 8px",
+                              cursor: "pointer",
+                              fontFamily: "var(--font-mono)",
+                              fontSize: 9,
+                              color:
+                                relayKeysCopied === type
+                                  ? "var(--green)"
+                                  : "var(--text-muted)",
+                            }}
+                          >
+                            {relayKeysCopied === type ? "✓" : "copy"}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}*/}
+
                 {false && !spendKey && watcherReady && !autoShield && (
                   <button
                     onClick={handleSign}
@@ -631,8 +755,8 @@ export default function Home() {
                         lineHeight: 1.8,
                       }}
                     >
-                      ⚠ You are about to share your private keys with your
-                      local stealth-watcher backend.
+                      ⚠ You are about to share your private keys with your local
+                      stealth-watcher backend.
                       <br />
                       <span style={{ color: "var(--text-muted)" }}>
                         The backend will be able to detect incoming payments and

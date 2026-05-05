@@ -79,6 +79,7 @@ export default function Dashboard() {
   const [hits, setHits] = useState<StealthHit[]>([]);
   const [scanError, setScanError] = useState<string | null>(null);
 
+
   useEffect(() => {
     setScanStatus("idle");
     setHits([]);
